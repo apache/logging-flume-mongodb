@@ -101,7 +101,7 @@
     <dropwizard-metrics.version>4.1.18</dropwizard-metrics.version>
     <findsecbugs-plugin.version>1.12.0</findsecbugs-plugin.version>
     <flume.version>2.0.0-SNAPSHOT</flume.version>
-    <jackson.version>2.17.0</jackson.version>
+    <jackson.version>2.18.8</jackson.version>
     <junit.version>4.13.2</junit.version>
     <mongodb.version>3.7.0</mongodb.version>
     <log4j.version>2.26.1</log4j.version>
