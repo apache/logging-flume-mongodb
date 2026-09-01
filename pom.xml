@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.apache.flume</groupId>
+    <artifactId>flume-parent</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <relativePath />
+  </parent>
+
+  <groupId>org.apache.flume</groupId>
+  <artifactId>flume-mongodb-parent</artifactId>
+  <version>2.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Flume MongoDB Parent</name>
+
+  <inceptionYear>2022</inceptionYear>
+
+  <organization>
+    <name>Apache Software Foundation</name>
+    <url>http://www.apache.org</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>rgoers</id>
+      <name>Ralph Goers</name>
+      <email>rgoers@apache.org</email>
+      <organization>Intuit</organization>
+    </developer>
+  </developers>
+
+  <mailingLists>
+    <mailingList>
+      <name>Flume User List</name>
+      <subscribe>user-subscribe@flume.apache.org</subscribe>
+      <unsubscribe>user-unsubscribe@flume.apache.org</unsubscribe>
+      <post>user@flume.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/flume-user/</archive>
+    </mailingList>
+    <mailingList>
+      <name>Flume Developer List</name>
+      <subscribe>dev-subscribe@flume.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@flume.apache.org</unsubscribe>
+      <post>dev@flume.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/flume-dev/</archive>
+    </mailingList>
+    <mailingList>
+      <name>Flume Commits</name>
+      <subscribe>commits-subscribe@flume.apache.org</subscribe>
+      <unsubscribe>commits-unsubscribe@flume.apache.org</unsubscribe>
+      <post>commits@flume.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/flume-commits/</archive>
+    </mailingList>
+  </mailingLists>
+  <modules>
+    <module>flume-mongodb-sink</module>
+  </modules>
+
+  <scm>
+    <connection>https://gitbox.apache.org/repos/asf/flume-spring-boot.git</connection>
+    <developerConnection>https://gitbox.apache.org/repos/asf/flume-spring-boot.git</developerConnection>
+    <url>https://gitbox.apache.org/repos/asf/flume-spring-boot.git</url>
+  </scm>
+
+  <issueManagement>
+    <system>JIRA</system>
+    <url>https://issues.apache.org/jira/browse/FLUME</url>
+  </issueManagement>
+
+  <properties>
+    <ReleaseVersion>2.0.0</ReleaseVersion>
+    <ReleaseManager>Ralph Goers</ReleaseManager>
+    <ReleaseKey>B3D8E1BA</ReleaseKey>
+    <SigningUserName>rgoers@apache.org</SigningUserName>
+    <checksum-maven-plugin.version>1.11</checksum-maven-plugin.version>
+    <dropwizard-metrics.version>4.1.18</dropwizard-metrics.version>
+    <findsecbugs-plugin.version>1.12.0</findsecbugs-plugin.version>
+    <flume.version>2.0.0-SNAPSHOT</flume.version>
+    <jackson.version>2.17.0</jackson.version>
+    <junit.version>4.13.2</junit.version>
+    <mongodb.version>3.7.0</mongodb.version>
+    <log4j.version>2.26.1</log4j.version>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <mockito.version>1.9.0</mockito.version>
+    <module.name>org.apache.flume.mongodb</module.name>
+    <mvn-gpg-plugin.version>1.6</mvn-gpg-plugin.version>
+    <mvn-javadoc-plugin.version>2.9</mvn-javadoc-plugin.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <rat.version>0.12</rat.version>
+    <spotbugs-maven-plugin.version>4.7.2.1</spotbugs-maven-plugin.version>
+    <spotless-maven-plugin.version>2.27.2</spotless-maven-plugin.version>
+    <mongodb.version>5.10.0</mongodb.version>
+  </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.apache.flume</groupId>
+        <artifactId>flume-ng-core</artifactId>
+        <version>${flume.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.flume</groupId>
+        <artifactId>flume-ng-sdk</artifactId>
+        <version>${flume.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.flume</groupId>
+        <artifactId>flume-ng-configuration</artifactId>
+        <version>${flume.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongodb-driver-bom</artifactId>
+        <version>${mongodb.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-core</artifactId>
+        <version>${dropwizard-metrics.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-api</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-all</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>${rat.version}</version>
+        <configuration>
+          <excludes>
+            <exclude>**/.idea/</exclude>
+            <exclude>**/*.iml</exclude>
+            <exclude>src/main/resources/META-INF/services/**/*</exclude>
+            <exclude>**/nb-configuration.xml</exclude>
+            <exclude>.git/</exclude>
+            <exclude>patchprocess/</exclude>
+            <exclude>.gitignore</exclude>
+            <exclude>**/*.yml</exclude>
+            <exclude>**/*.yaml</exclude>
+            <exclude>**/*.json</exclude>
+            <!-- ASF jenkins box puts the Maven repo in our root directory. -->
+            <exclude>.repository/</exclude>
+            <exclude>**/*.diff</exclude>
+            <exclude>**/*.patch</exclude>
+            <exclude>**/*.avsc</exclude>
+            <exclude>**/*.avro</exclude>
+            <exclude>**/docs/**</exclude>
+            <exclude>**/test/resources/**</exclude>
+            <exclude>**/.settings/*</exclude>
+            <exclude>**/.classpath</exclude>
+            <exclude>**/.project</exclude>
+            <exclude>**/target/**</exclude>
+            <exclude>**/derby.log</exclude>
+            <exclude>**/metastore_db/</exclude>
+            <exclude>.mvn/**</exclude>
+            <exclude>**/exclude-pmd.properties</exclude>
+          </excludes>
+          <consoleOutput>true</consoleOutput>
+        </configuration>
+        <executions>
+          <execution>
+            <id>verify.rat</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
