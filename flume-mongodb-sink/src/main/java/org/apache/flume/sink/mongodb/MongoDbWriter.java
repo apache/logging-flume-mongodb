@@ -28,12 +28,18 @@ import org.bson.Document;
 public interface MongoDbWriter {
 
     /**
-     * Writes the given documents to the named collection.
+     * Writes the given documents to the named collection. Documents that
+     * fail to insert because they duplicate an existing document (i.e.
+     * trigger a {@code com.mongodb.DuplicateKeyException}) are skipped
+     * rather than causing the whole batch to fail; they are reported via
+     * {@link MongoDbWriteResult#getDuplicateCount()}.
      *
      * @param collectionName the target collection name
      * @param documents      the documents to insert, in order
+     * @return the number of documents inserted and the number skipped as
+     *         duplicates
      */
-    void write(String collectionName, List<Document> documents);
+    MongoDbWriteResult write(String collectionName, List<Document> documents);
 
     /**
      * Releases any resources (e.g. the underlying MongoDB client) held by
