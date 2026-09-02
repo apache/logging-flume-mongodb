@@ -48,7 +48,6 @@ public class TestMongoDbSink {
      */
     private static final class FakeMongoDbWriter implements MongoDbWriter {
         private final Map<String, List<Document>> written = new LinkedHashMap<>();
-        private boolean closed = false;
         private long duplicateCountToReport = 0;
 
         @Override
@@ -60,9 +59,7 @@ public class TestMongoDbSink {
         }
 
         @Override
-        public void close() {
-            closed = true;
-        }
+        public void close() {}
     }
 
     private static Context baseContext() {
