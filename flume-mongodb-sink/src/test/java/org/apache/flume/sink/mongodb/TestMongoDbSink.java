@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,7 +40,6 @@ import org.apache.flume.event.EventBuilder;
 import org.apache.flume.instrumentation.SinkCounter;
 import org.bson.Document;
 import org.junit.Test;
-import org.mockito.internal.util.reflection.Whitebox;
 
 public class TestMongoDbSink {
 
@@ -70,6 +70,26 @@ public class TestMongoDbSink {
         return context;
     }
 
+    private static void setInternalState(Object target, String fieldName, Object value) {
+        try {
+            Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Unable to set field " + fieldName, e);
+        }
+    }
+
+    private static Object getInternalState(Object target, String fieldName) {
+        try {
+            Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(target);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Unable to read field " + fieldName, e);
+        }
+    }
+
     private static MongoDbSink createSink(Context context, MongoDbWriter writer) {
         MongoDbSink sink = new MongoDbSink();
         Channel channel = new MemoryChannel();
@@ -77,8 +97,8 @@ public class TestMongoDbSink {
         sink.setChannel(channel);
         channel.start();
         Configurables.configure(sink, context);
-        Whitebox.setInternalState(sink, "writer", writer);
-        Whitebox.setInternalState(sink, "counter", new SinkCounter("test"));
+        setInternalState(sink, "writer", writer);
+        setInternalState(sink, "counter", new SinkCounter("test"));
         return sink;
     }
 
@@ -254,7 +274,7 @@ public class TestMongoDbSink {
         sink.configure(context);
 
         @SuppressWarnings("unchecked")
-        Map<String, String> collectionMap = (Map<String, String>) Whitebox.getInternalState(sink, "collectionMap");
+        Map<String, String> collectionMap = (Map<String, String>) getInternalState(sink, "collectionMap");
         assertEquals("collectionA", collectionMap.get("typeA"));
         assertEquals("collectionB", collectionMap.get("typeB"));
     }
