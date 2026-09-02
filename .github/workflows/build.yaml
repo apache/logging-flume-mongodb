@@ -41,6 +41,34 @@ jobs:
     with:
       java-version: 17
 
+  # TODO: remove once the `.asf.yaml` ruleset on `main` requires `build / build (ubuntu-latest)`.
+  # The ruleset currently in force requires a check named `build (ubuntu-latest)`, which the
+  # reusable workflow cannot produce, so this job carries that name until the fix is merged.
+  build-legacy-check:
+    name: build (ubuntu-latest)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: maven
+
+      - name: Build
+        shell: bash
+        run: |
+          ./mvnw \
+            --show-version --batch-mode --errors --no-transfer-progress \
+            -DtrimStackTrace=false \
+            verify
+
   deploy-snapshot:
     needs: build
     if: github.repository == 'apache/logging-flume-mongodb' && github.ref_name == 'main'
