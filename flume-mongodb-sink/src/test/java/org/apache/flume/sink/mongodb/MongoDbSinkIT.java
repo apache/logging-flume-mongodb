@@ -23,13 +23,6 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
-import de.flapdoodle.embed.mongo.MongodExecutable;
-import de.flapdoodle.embed.mongo.MongodProcess;
-import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.MongodConfig;
-import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.process.runtime.Network;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.apache.flume.Channel;
@@ -46,40 +39,24 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Integration tests that exercise {@link MongoDbSink} against a real (but
- * embedded/in-memory) MongoDB instance provided by Flapdoodle, verifying
- * that duplicate key errors are tolerated instead of failing the whole
- * batch and are tracked via a dedicated counter.
+ * Integration tests that exercise {@link MongoDbSink} against MongoDB running
+ * in the Docker container configured by the Maven {@code docker} profile.
  */
-public class TestMongoDbSinkEmbedded {
+public class MongoDbSinkIT {
 
-    private static MongodExecutable mongodExecutable;
     private static MongoClient mongoClient;
     private static int port;
 
     @BeforeClass
-    public static void startMongo() throws Exception {
-        port = Network.getFreeServerPort();
-        MongodStarter starter = MongodStarter.getDefaultInstance();
-        MongodConfig mongodConfig = MongodConfig.builder()
-                .version(Version.Main.V4_4)
-                .net(new Net(port, Network.localhostIsIPv6()))
-                .build();
-        MongodExecutable executable = starter.prepare(mongodConfig);
-        MongodProcess process = executable.start();
-        mongodExecutable = executable;
+    public static void connectToMongo() {
+        port = Integer.parseInt(System.getProperty("mongo.port"));
         mongoClient = MongoClients.create("mongodb://localhost:" + port);
-        // Keep a reference so the process isn't garbage collected/stopped early.
-        assert process != null;
     }
 
     @AfterClass
-    public static void stopMongo() {
+    public static void closeMongoClient() {
         if (mongoClient != null) {
             mongoClient.close();
-        }
-        if (mongodExecutable != null) {
-            mongodExecutable.stop();
         }
     }
 
