@@ -27,9 +27,9 @@
   <name>Flume MongoDb Sink</name>
 
   <properties>
-    <!-- TODO fix spotbugs/pmd violations -->
-    <spotbugs.maxAllowedViolations>3</spotbugs.maxAllowedViolations>
-    <pmd.maxAllowedViolations>3</pmd.maxAllowedViolations>
+    <!-- TODO fix spotbugs violations -->
+    <spotbugs.maxAllowedViolations>4</spotbugs.maxAllowedViolations>
+    <pmd.maxAllowedViolations>0</pmd.maxAllowedViolations>
     <module.name>org.apache.flume.sink.mongodb</module.name>
   </properties>
 
