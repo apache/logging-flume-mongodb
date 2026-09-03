@@ -18,6 +18,7 @@ package org.apache.flume.sink.mongodb;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -49,7 +50,6 @@ public class TestMongoDbSink {
      */
     private static final class FakeMongoDbWriter implements MongoDbWriter {
         private final Map<String, List<Document>> written = new LinkedHashMap<>();
-        private boolean closed = false;
 
         @Override
         public void write(String collectionName, List<Document> documents) {
@@ -57,9 +57,7 @@ public class TestMongoDbSink {
         }
 
         @Override
-        public void close() {
-            closed = true;
-        }
+        public void close() {}
     }
 
     private static Context baseContext() {
@@ -110,28 +108,84 @@ public class TestMongoDbSink {
         tx.close();
     }
 
-    @Test(expected = ConfigurationException.class)
+    private static void assertConfigurationFailure(Context context, String expectedMessage) {
+        ConfigurationException error =
+                assertThrows(ConfigurationException.class, () -> new MongoDbSink().configure(context));
+        assertEquals(expectedMessage, error.getMessage());
+    }
+
+    @Test
+    public void testConfigureDatabaseAndCollectionFromUri() {
+        Context context = new Context();
+        context.put(MongoDbSinkConstants.CONNECTION_URI, "mongodb://localhost:27017/uriDatabase.uriCollection");
+
+        MongoDbSink sink = new MongoDbSink();
+        sink.configure(context);
+
+        assertEquals("uriDatabase", sink.getDatabaseName());
+        assertEquals("uriCollection", sink.getDefaultCollection());
+        assertEquals(MongoDbSinkConstants.DEFAULT_BATCH_SIZE, sink.getBatchSize());
+    }
+
+    @Test
+    public void testConfigureExplicitNamesOverrideUri() {
+        Context context = new Context();
+        context.put(MongoDbSinkConstants.CONNECTION_URI, "mongodb://localhost:27017/uriDatabase.uriCollection");
+        context.put(MongoDbSinkConstants.DATABASE_NAME, "configuredDatabase");
+        context.put(MongoDbSinkConstants.COLLECTION, "configuredCollection");
+
+        MongoDbSink sink = new MongoDbSink();
+        sink.configure(context);
+
+        assertEquals("configuredDatabase", sink.getDatabaseName());
+        assertEquals("configuredCollection", sink.getDefaultCollection());
+    }
+
+    @Test
     public void testConfigureMissingUri() {
         Context context = new Context();
         context.put(MongoDbSinkConstants.DATABASE_NAME, "testDb");
         context.put(MongoDbSinkConstants.COLLECTION, "col");
-        new MongoDbSink().configure(context);
+        assertConfigurationFailure(context, "Missing MongoDB connection string in `mongodb.uri`");
     }
 
-    @Test(expected = ConfigurationException.class)
+    @Test
     public void testConfigureMissingDatabase() {
         Context context = new Context();
         context.put(MongoDbSinkConstants.CONNECTION_URI, "mongodb://localhost:27017");
         context.put(MongoDbSinkConstants.COLLECTION, "col");
-        new MongoDbSink().configure(context);
+        assertConfigurationFailure(
+                context, "Missing MongoDB database name; set `mongodb.database` or include it in `mongodb.uri`");
     }
 
-    @Test(expected = ConfigurationException.class)
+    @Test
     public void testConfigureMissingCollection() {
         Context context = new Context();
         context.put(MongoDbSinkConstants.CONNECTION_URI, "mongodb://localhost:27017");
         context.put(MongoDbSinkConstants.DATABASE_NAME, "testDb");
-        new MongoDbSink().configure(context);
+        assertConfigurationFailure(
+                context, "Missing MongoDB collection name; set `mongodb.collection` or include it in `mongodb.uri`");
+    }
+
+    @Test
+    public void testConfigureInvalidUri() {
+        Context context = baseContext();
+        context.put(MongoDbSinkConstants.CONNECTION_URI, "invalid");
+        assertConfigurationFailure(context, "Invalid MongoDB connection string in `mongodb.uri`: `invalid`");
+    }
+
+    @Test
+    public void testConfigureInvalidDatabase() {
+        Context context = baseContext();
+        context.put(MongoDbSinkConstants.DATABASE_NAME, "invalid/database");
+        assertConfigurationFailure(context, "Invalid MongoDB database name in `mongodb.database`: `invalid/database`");
+    }
+
+    @Test
+    public void testConfigureEmptyMappedCollection() {
+        Context context = baseContext();
+        context.put(MongoDbSinkConstants.COLLECTION_MAP_PREFIX + "typeA", "");
+        assertConfigurationFailure(context, "Invalid MongoDB collection name in `mongodb.collectionMap.typeA`: ``");
     }
 
     @Test

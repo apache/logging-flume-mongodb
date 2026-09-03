@@ -16,7 +16,9 @@
  */
 package org.apache.flume.sink.mongodb;
 
+import com.mongodb.ConnectionString;
 import com.mongodb.MongoException;
+import com.mongodb.MongoNamespace;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -39,6 +41,7 @@ import org.apache.flume.sink.AbstractSink;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A Flume Sink that writes events to MongoDB.
@@ -71,7 +74,7 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
 
     private static final Logger logger = LogManager.getLogger(MongoDbSink.class);
 
-    private String connectionUri;
+    private ConnectionString connectionString;
     private String databaseName;
     private String defaultCollection;
     private String collectionHeader;
@@ -214,7 +217,7 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
 
     @Override
     public synchronized void start() {
-        mongoClient = MongoClients.create(connectionUri);
+        mongoClient = MongoClients.create(connectionString);
         MongoDatabase mongoDatabase = mongoClient.getDatabase(databaseName);
         writer = new DefaultMongoDbWriter(mongoDatabase, writeConcern);
         counter.start();
@@ -240,23 +243,25 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
 
     @Override
     public void configure(Context context) {
-        connectionUri = context.getString(MongoDbSinkConstants.CONNECTION_URI);
-        if (connectionUri == null || connectionUri.isEmpty()) {
-            throw new ConfigurationException("mongodb.uri must be specified");
-        }
+        String connectionUri = context.getString(MongoDbSinkConstants.CONNECTION_URI);
+        connectionString = createConnectionString(connectionUri);
 
-        databaseName = context.getString(MongoDbSinkConstants.DATABASE_NAME);
-        if (databaseName == null || databaseName.isEmpty()) {
-            throw new ConfigurationException("mongodb.database must be specified");
-        }
+        databaseName = context.getString(MongoDbSinkConstants.DATABASE_NAME, connectionString.getDatabase());
+        String databaseNameSource = context.containsKey(MongoDbSinkConstants.DATABASE_NAME)
+                ? MongoDbSinkConstants.DATABASE_NAME
+                : MongoDbSinkConstants.CONNECTION_URI;
+        checkDatabaseNameValidity(databaseName, databaseNameSource);
 
-        defaultCollection = context.getString(MongoDbSinkConstants.COLLECTION);
-        if (defaultCollection == null || defaultCollection.isEmpty()) {
-            throw new ConfigurationException("mongodb.collection must be specified");
-        }
+        defaultCollection = context.getString(MongoDbSinkConstants.COLLECTION, connectionString.getCollection());
+        String collectionNameSource = context.containsKey(MongoDbSinkConstants.COLLECTION)
+                ? MongoDbSinkConstants.COLLECTION
+                : MongoDbSinkConstants.CONNECTION_URI;
+        checkCollectionNameValidity(defaultCollection, collectionNameSource);
 
         collectionHeader = context.getString(MongoDbSinkConstants.COLLECTION_HEADER);
         collectionMap = context.getSubProperties(MongoDbSinkConstants.COLLECTION_MAP_PREFIX);
+        collectionMap.forEach(
+                (key, value) -> checkCollectionNameValidity(value, MongoDbSinkConstants.COLLECTION_MAP_PREFIX + key));
         collectionMapFallback = context.getBoolean(
                 MongoDbSinkConstants.COLLECTION_MAP_FALLBACK, MongoDbSinkConstants.DEFAULT_COLLECTION_MAP_FALLBACK);
 
@@ -280,6 +285,48 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
 
         if (counter == null) {
             counter = new SinkCounter(getName());
+        }
+    }
+
+    private static ConnectionString createConnectionString(@Nullable String connectionUri) {
+        if (connectionUri == null) {
+            throw new ConfigurationException(
+                    "Missing MongoDB connection string in `" + MongoDbSinkConstants.CONNECTION_URI + "`");
+        }
+        try {
+            return new ConnectionString(connectionUri);
+        } catch (IllegalArgumentException error) {
+            throw new ConfigurationException(
+                    "Invalid MongoDB connection string in `" + MongoDbSinkConstants.CONNECTION_URI + "`: `"
+                            + connectionUri + "`",
+                    error);
+        }
+    }
+
+    private static void checkDatabaseNameValidity(@Nullable String databaseName, String source) {
+        if (databaseName == null) {
+            throw new ConfigurationException("Missing MongoDB database name; set `" + MongoDbSinkConstants.DATABASE_NAME
+                    + "` or include it in `" + MongoDbSinkConstants.CONNECTION_URI + "`");
+        }
+        try {
+            MongoNamespace.checkDatabaseNameValidity(databaseName);
+        } catch (IllegalArgumentException error) {
+            throw new ConfigurationException(
+                    "Invalid MongoDB database name in `" + source + "`: `" + databaseName + "`", error);
+        }
+    }
+
+    private static void checkCollectionNameValidity(@Nullable String collectionName, String source) {
+        if (collectionName == null) {
+            throw new ConfigurationException("Missing MongoDB collection name; set `"
+                    + MongoDbSinkConstants.COLLECTION + "` or include it in `" + MongoDbSinkConstants.CONNECTION_URI
+                    + "`");
+        }
+        try {
+            MongoNamespace.checkCollectionNameValidity(collectionName);
+        } catch (IllegalArgumentException error) {
+            throw new ConfigurationException(
+                    "Invalid MongoDB collection name in `" + source + "`: `" + collectionName + "`", error);
         }
     }
 }
