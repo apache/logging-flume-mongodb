@@ -55,6 +55,7 @@
     <!-- Dependency versions -->
     <dropwizard-metrics.version>4.1.18</dropwizard-metrics.version>
     <mongodb.version>5.10.0</mongodb.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
   </properties>
 
   <dependencyManagement>
@@ -71,6 +72,14 @@
         <groupId>org.mongodb</groupId>
         <artifactId>mongodb-driver-bom</artifactId>
         <version>${mongodb.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -35,34 +35,49 @@ import org.apache.flume.conf.Configurables;
 import org.apache.flume.event.EventBuilder;
 import org.bson.Document;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.utility.DockerImageName;
 
 /**
  * Integration tests that exercise {@link MongoDbSink} against MongoDB running
- * in the Docker container configured by the Maven {@code docker} profile.
+ * in a Testcontainers-managed Docker container. The tests are skipped
+ * (rather than failed) when Docker is not available in the environment.
  */
 public class MongoDbSinkIT {
 
+    private static final DockerImageName MONGO_IMAGE = DockerImageName.parse("mongo:latest");
+
+    private static MongoDBContainer mongoDBContainer;
     private static MongoClient mongoClient;
-    private static int port;
 
     @BeforeClass
-    public static void connectToMongo() {
-        port = Integer.parseInt(System.getProperty("mongo.port"));
-        mongoClient = MongoClients.create("mongodb://localhost:" + port);
+    public static void startMongoContainer() {
+        Assume.assumeTrue(
+                "Docker is not available, skipping MongoDbSinkIT",
+                DockerClientFactory.instance().isDockerAvailable());
+
+        mongoDBContainer = new MongoDBContainer(MONGO_IMAGE);
+        mongoDBContainer.start();
+        mongoClient = MongoClients.create(mongoDBContainer.getConnectionString());
     }
 
     @AfterClass
-    public static void closeMongoClient() {
+    public static void stopMongoContainer() {
         if (mongoClient != null) {
             mongoClient.close();
+        }
+        if (mongoDBContainer != null) {
+            mongoDBContainer.stop();
         }
     }
 
     private static Context baseContext(String database, String collection) {
         Context context = new Context();
-        context.put(MongoDbSinkConstants.CONNECTION_URI, "mongodb://localhost:" + port);
+        context.put(MongoDbSinkConstants.CONNECTION_URI, mongoDBContainer.getConnectionString());
         context.put(MongoDbSinkConstants.DATABASE_NAME, database);
         context.put(MongoDbSinkConstants.COLLECTION, collection);
         return context;
