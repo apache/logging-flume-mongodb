@@ -18,8 +18,10 @@ package org.apache.flume.sink.mongodb;
 
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.ErrorCategory;
+import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoWriteException;
 import com.mongodb.WriteConcern;
+import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import java.util.List;
@@ -50,10 +52,60 @@ public class DefaultMongoDbWriter implements MongoDbWriter {
             collection = collection.withWriteConcern(writeConcern);
         }
 
+        // First try to insert the whole batch in a single operation, which is
+        // far more efficient than one insert per document. Only fall back to
+        // inserting one document at a time if the batch insert fails because
+        // of duplicate keys.
+        try {
+            collection.insertMany(documents);
+            return new MongoDbWriteResult(documents.size(), 0);
+        } catch (MongoBulkWriteException ex) {
+            if (isDuplicateKeyOnly(ex)) {
+                // insertMany() is ordered by default, so it stops at the first
+                // failing document; everything before that point was already
+                // successfully persisted. Skip those already-written documents
+                // before retrying the remainder one at a time, otherwise they
+                // would be re-attempted and incorrectly counted as duplicates.
+                int alreadyInserted = ex.getWriteResult().getInsertedCount();
+                logger.warn(
+                        "Duplicate key(s) while batch inserting into collection {}, "
+                                + "retrying remaining documents one at a time: {}",
+                        collectionName,
+                        ex.getMessage());
+                MongoDbWriteResult retryResult = writeOneAtATime(
+                        collection, collectionName, documents.subList(alreadyInserted, documents.size()));
+                return new MongoDbWriteResult(
+                        alreadyInserted + retryResult.getInsertedCount(), retryResult.getDuplicateCount());
+            }
+            throw ex;
+        }
+    }
+
+    /**
+     * Returns {@code true} if every error reported by the bulk write failure
+     * is a duplicate key error.
+     */
+    private boolean isDuplicateKeyOnly(MongoBulkWriteException ex) {
+        List<BulkWriteError> errors = ex.getWriteErrors();
+        if (errors.isEmpty()) {
+            return false;
+        }
+        for (BulkWriteError error : errors) {
+            if (ErrorCategory.fromErrorCode(error.getCode()) != ErrorCategory.DUPLICATE_KEY) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Inserts documents one at a time so that a duplicate key on any single
+     * document does not prevent the rest of the batch from being inserted.
+     */
+    private MongoDbWriteResult writeOneAtATime(
+            MongoCollection<Document> collection, String collectionName, List<Document> documents) {
         long insertedCount = 0;
         long duplicateCount = 0;
-        // Insert one document at a time (rather than insertMany) so that a
-        // single duplicate key does not abort the rest of the batch.
         for (Document document : documents) {
             try {
                 collection.insertOne(document);
