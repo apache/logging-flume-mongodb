@@ -130,6 +130,64 @@ public class MongoDbSinkIT {
     }
 
     @Test
+    public void testDuplicatesAnywhereInTheBatchAreSkippedIndividually() throws EventDeliveryException {
+        String database = "testDb3";
+        String collectionName = "events";
+        Context context = baseContext(database, collectionName);
+        MongoDbSink sink = createAndStartSink(context);
+        try {
+            MongoCollection<Document> collection =
+                    mongoClient.getDatabase(database).getCollection(collectionName);
+            collection.createIndex(Indexes.ascending("uid"), new IndexOptions().unique(true));
+            collection.insertOne(new Document("uid", 1).append("value", "pre-existing"));
+
+            Channel channel = sink.getChannel();
+            // The very first event of the batch is a duplicate, as is the last
+            // one; the events in between must still be inserted.
+            putEvent(channel, "{\"uid\":1,\"value\":\"a\"}");
+            putEvent(channel, "{\"uid\":2,\"value\":\"b\"}");
+            putEvent(channel, "{\"uid\":3,\"value\":\"c\"}");
+            putEvent(channel, "{\"uid\":1,\"value\":\"d\"}");
+
+            Sink.Status status = sink.process();
+
+            assertEquals(Sink.Status.READY, status);
+            assertEquals(3, collection.countDocuments());
+            assertEquals(2, sink.getDuplicateEventCount());
+        } finally {
+            sink.stop();
+        }
+    }
+
+    @Test
+    public void testDuplicatesWithinTheSameBatchAreSkipped() throws EventDeliveryException {
+        String database = "testDb4";
+        String collectionName = "events";
+        Context context = baseContext(database, collectionName);
+        MongoDbSink sink = createAndStartSink(context);
+        try {
+            MongoCollection<Document> collection =
+                    mongoClient.getDatabase(database).getCollection(collectionName);
+            collection.createIndex(Indexes.ascending("uid"), new IndexOptions().unique(true));
+
+            Channel channel = sink.getChannel();
+            // Nothing is pre-existing: the duplicates are between events of the
+            // batch itself, so only the first occurrence of each key survives.
+            putEvent(channel, "{\"uid\":1,\"value\":\"a\"}");
+            putEvent(channel, "{\"uid\":1,\"value\":\"b\"}");
+            putEvent(channel, "{\"uid\":1,\"value\":\"c\"}");
+
+            Sink.Status status = sink.process();
+
+            assertEquals(Sink.Status.READY, status);
+            assertEquals(1, collection.countDocuments());
+            assertEquals(2, sink.getDuplicateEventCount());
+        } finally {
+            sink.stop();
+        }
+    }
+
+    @Test
     public void testNoDuplicatesLeavesDuplicateCountAtZero() throws EventDeliveryException {
         String database = "testDb2";
         String collectionName = "events";
