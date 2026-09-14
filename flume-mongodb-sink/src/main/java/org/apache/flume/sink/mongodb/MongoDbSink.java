@@ -36,7 +36,6 @@ import org.apache.flume.Transaction;
 import org.apache.flume.conf.BatchSizeSupported;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.conf.ConfigurationException;
-import org.apache.flume.instrumentation.SinkCounter;
 import org.apache.flume.sink.AbstractSink;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,7 +85,7 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
 
     private MongoClient mongoClient;
     private MongoDbWriter writer;
-    private SinkCounter counter;
+    private MongoDbSinkCounter counter;
 
     // For testing
     public String getDatabaseName() {
@@ -95,6 +94,11 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
 
     public String getDefaultCollection() {
         return defaultCollection;
+    }
+
+    /** For testing: number of events skipped due to duplicate keys. */
+    public long getDuplicateEventCount() {
+        return counter.getDuplicateEventCount();
     }
 
     @Override
@@ -141,12 +145,19 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
                         .add(document);
             }
 
+            long insertedEvents = 0;
+            long duplicateEvents = 0;
             for (Map.Entry<String, List<Document>> entry : documentsByCollection.entrySet()) {
-                writer.write(entry.getKey(), entry.getValue());
+                MongoDbWriteResult writeResult = writer.write(entry.getKey(), entry.getValue());
+                insertedEvents += writeResult.getInsertedCount();
+                duplicateEvents += writeResult.getDuplicateCount();
             }
 
-            if (processedEvents > 0) {
-                counter.addToEventDrainSuccessCount(processedEvents);
+            if (insertedEvents > 0) {
+                counter.addToEventDrainSuccessCount(insertedEvents);
+            }
+            if (duplicateEvents > 0) {
+                counter.addToDuplicateEventCount(duplicateEvents);
             }
 
             transaction.commit();
@@ -284,7 +295,7 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
         }
 
         if (counter == null) {
-            counter = new SinkCounter(getName());
+            counter = new MongoDbSinkCounter(getName());
         }
     }
 

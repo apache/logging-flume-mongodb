@@ -38,7 +38,6 @@ import org.apache.flume.channel.MemoryChannel;
 import org.apache.flume.conf.Configurables;
 import org.apache.flume.conf.ConfigurationException;
 import org.apache.flume.event.EventBuilder;
-import org.apache.flume.instrumentation.SinkCounter;
 import org.bson.Document;
 import org.junit.Test;
 
@@ -50,10 +49,14 @@ public class TestMongoDbSink {
      */
     private static final class FakeMongoDbWriter implements MongoDbWriter {
         private final Map<String, List<Document>> written = new LinkedHashMap<>();
+        private long duplicateCountToReport = 0;
 
         @Override
-        public void write(String collectionName, List<Document> documents) {
+        public MongoDbWriteResult write(String collectionName, List<Document> documents) {
             written.computeIfAbsent(collectionName, k -> new ArrayList<>()).addAll(documents);
+            long duplicates = Math.min(duplicateCountToReport, documents.size());
+            duplicateCountToReport -= duplicates;
+            return new MongoDbWriteResult(documents.size() - duplicates, duplicates);
         }
 
         @Override
@@ -96,7 +99,7 @@ public class TestMongoDbSink {
         channel.start();
         Configurables.configure(sink, context);
         setInternalState(sink, "writer", writer);
-        setInternalState(sink, "counter", new SinkCounter("test"));
+        setInternalState(sink, "counter", new MongoDbSinkCounter("test"));
         return sink;
     }
 
@@ -186,6 +189,23 @@ public class TestMongoDbSink {
         Context context = baseContext();
         context.put(MongoDbSinkConstants.COLLECTION_MAP_PREFIX + "typeA", "");
         assertConfigurationFailure(context, "Invalid MongoDB collection name in `mongodb.collectionMap.typeA`: ``");
+    }
+
+    @Test
+    public void testDuplicateEventsDoNotFailBatchAndAreCountedSeparately() throws EventDeliveryException {
+        FakeMongoDbWriter writer = new FakeMongoDbWriter();
+        writer.duplicateCountToReport = 1;
+        Context context = baseContext();
+        MongoDbSink sink = createSink(context, writer);
+        Channel channel = sink.getChannel();
+
+        putEvent(channel, "{\"foo\":\"1\"}".getBytes(StandardCharsets.UTF_8), new HashMap<String, String>());
+        putEvent(channel, "{\"foo\":\"2\"}".getBytes(StandardCharsets.UTF_8), new HashMap<String, String>());
+
+        Sink.Status status = sink.process();
+
+        assertEquals(Sink.Status.READY, status);
+        assertEquals(1, sink.getDuplicateEventCount());
     }
 
     @Test
