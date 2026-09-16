@@ -29,8 +29,6 @@ notifications:
 github:
   description: "Apache Flume is a distributed, reliable, and available service for efficiently collecting, aggregating, and moving large amounts of log-like data"
   homepage: https://flume.apache.org/
-  autolink_jira:
-    - FLUME
   labels:
     - apache
     - api
