@@ -55,7 +55,7 @@
     <!-- Dependency versions -->
     <dropwizard-metrics.version>4.2.39</dropwizard-metrics.version>
     <mongodb.version>5.10.0</mongodb.version>
-    <testcontainers.version>1.21.4</testcontainers.version>
+    <testcontainers.version>2.0.5</testcontainers.version>
   </properties>
 
   <dependencyManagement>
