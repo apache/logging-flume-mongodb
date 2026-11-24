@@ -16,6 +16,8 @@
  */
 package org.apache.flume.sink.mongodb;
 
+import aQute.bnd.annotation.Resolution;
+import aQute.bnd.annotation.spi.ServiceProvider;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
@@ -31,12 +33,15 @@ import java.util.Map;
 import org.apache.flume.Channel;
 import org.apache.flume.Context;
 import org.apache.flume.EventDeliveryException;
+import org.apache.flume.Sink;
 import org.apache.flume.Transaction;
 import org.apache.flume.conf.BatchSizeSupported;
 import org.apache.flume.conf.Configurable;
 import org.apache.flume.conf.ConfigurationException;
 import org.apache.flume.event.Event;
 import org.apache.flume.sink.AbstractSink;
+import org.apache.flume.spi.AbstractComponentProvider;
+import org.apache.flume.spi.SinkProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
@@ -338,6 +343,17 @@ public class MongoDbSink extends AbstractSink implements Configurable, BatchSize
         } catch (IllegalArgumentException error) {
             throw new ConfigurationException(
                     "Invalid MongoDB collection name in `" + source + "`: `" + collectionName + "`", error);
+        }
+    }
+
+    /**
+     * Provides the {@code mongodb} sink type.
+     */
+    @ServiceProvider(value = SinkProvider.class, resolution = Resolution.OPTIONAL)
+    public static final class Provider extends AbstractComponentProvider<Sink> implements SinkProvider {
+
+        public Provider() {
+            super("mongodb", MongoDbSink.class);
         }
     }
 }

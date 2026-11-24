@@ -52,6 +52,11 @@
     </dependency>
 
     <dependency>
+      <groupId>biz.aQute.bnd</groupId>
+      <artifactId>biz.aQute.bnd.annotation</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
     </dependency>
